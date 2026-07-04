@@ -31,5 +31,5 @@ echo "== Provider health (debug) =="
 curl -s "${BASE_URL}/debug/health/providers" | python -m json.tool
 
 echo
-echo "Done. Auth is not enabled yet (Phase 2)."
+echo "Done. Gateway auth is not enabled yet."
 echo "Future: -H \"Authorization: Bearer \$GATEWAY_API_KEY\""

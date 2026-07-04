@@ -17,7 +17,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 | Variable | Purpose |
 |---|---|
-| `GATEWAY_API_KEY` | Client auth for the gateway (Phase 2 — not enforced yet) |
+| `GATEWAY_API_KEY` | Required at startup (gateway auth not enforced yet) |
 | `GROQ_API_KEY` | Groq upstream (`fast/demo`, `smart/general` primary) |
 | `DO_MODEL_ACCESS_KEY` | DigitalOcean Gradient inference gateway |
 | `OPENAI_API_KEY` | Optional native OpenAI (if configured in routes) |
@@ -84,7 +84,5 @@ pytest tests/ -q
 
 ## Architecture docs
 
+- **[`docs/images/`](docs/images/)** — architecture PNGs (high-level, class, sequence diagrams)
 - [`implementation_steps.md`](implementation_steps.md) — build checklist
-- [`phase9.md`](phase9.md) — observability (request ID, structured logs, headers)
-
-Auth middleware is planned in [`phase2.md`](phase2.md) (not enabled yet).

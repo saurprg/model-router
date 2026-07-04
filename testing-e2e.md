@@ -71,7 +71,7 @@ curl -s "$BASE_URL/v1/chat/completions" \
 
 **Expected:** HTTP `200`, `"model": "llama-3.1-8b-instant"`
 
-### 4. Observability headers (Phase 9)
+### 4. Observability headers
 
 ```bash
 curl -i "$BASE_URL/v1/chat/completions" \
@@ -109,7 +109,7 @@ curl -N "$BASE_URL/v1/chat/completions" \
 curl -s "$BASE_URL/debug/health/providers" | jq
 ```
 
-**Expected:** `{}` when healthy, or provider entries after failures (see [`phase8.md`](phase8.md))
+**Expected:** `{}` when healthy, or provider entries after repeated upstream failures
 
 ### 7. Fallback chain (optional)
 
@@ -167,7 +167,7 @@ curl -s https://inference.do-ai.run/v1/models \
 
 ### Auth
 
-Gateway auth (`Authorization: Bearer`) is **not enabled** yet ([`phase2.md`](phase2.md)). No auth header required for production tests today.
+Gateway auth (`Authorization: Bearer`) is **not enabled** yet. No auth header required for production tests today.
 
 ---
 

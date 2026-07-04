@@ -50,7 +50,7 @@ HTTP (api/)  →  Orchestrator  →  Adapters  →  Upstream APIs
 ```text
 [x] Phase 0  — Bootstrap (dirs, venv, .env)
 [x] Phase 1  — settings.py, errors.py, schemas.py, main.py skeleton
-[ ] Phase 2  — middleware (DEFERRED — see phase2.md; implement after Phase 7)
+[ ] Phase 2  — middleware (DEFERRED — auth not implemented; implement when needed)
 [x] Phase 3  — config/models.yaml, router/registry.py
 [x] Phase 4  — providers/base.py, openai_adapter.py, __init__.py factory
 [x] Phase 5  — streaming/proxy.py
@@ -236,13 +236,11 @@ curl localhost:8000/health
 
 ## Phase 2 — Cross-cutting concerns (15 min) — **DEFERRED**
 
-> **On hold:** Gateway auth and request-ID middleware are deferred until core features (Phases 3–7) work end-to-end. Full plan: [`phase2.md`](phase2.md)
+> **On hold:** Gateway auth middleware is deferred. Request ID middleware is implemented in Phase 9.
 
-Skip to **Phase 3** for now. Return to Phase 2 after the chat completions demo is working.
+Skip to **Phase 3** for now. Return to Phase 2 when gateway auth is needed.
 
 ## Phase 3 — Routing registry (15 min) — **COMPLETE**
-
-> Plan reference: [`phase3.md`](phase3.md)
 
 ### Step 3.1 — `config/models.yaml`
 
@@ -300,8 +298,6 @@ assert len(registry.resolve("smart/general")) >= 1
 ---
 
 ## Phase 4 — Adapter layer (35 min) — **COMPLETE**
-
-> Plan reference: [`phase4.md`](phase4.md) · Groq via `OpenAIAdapter` + `GROQ_API_KEY`
 
 Build adapters before orchestrator. Test each in isolation.
 
@@ -375,8 +371,6 @@ assert get_adapter("openai", settings).provider_name == "openai"
 
 ## Phase 5 — Streaming module (20 min) — **COMPLETE**
 
-> Plan reference: [`phase5.md`](phase5.md)
-
 ### Step 5.1 — `app/streaming/proxy.py`
 
 **Pattern:** Iterator / generator pipeline
@@ -395,8 +389,6 @@ Adapters yield typed chunks; proxy only formats SSE.
 ---
 
 ## Phase 6 — Orchestrator (25 min) ★ — **COMPLETE**
-
-> Plan reference: [`phase6.md`](phase6.md)
 
 ### Step 6.1 — `app/orchestrator/fallback.py`
 
@@ -444,8 +436,6 @@ for target in targets:
 
 ## Phase 7 — HTTP API layer (15 min) — **COMPLETE**
 
-> Plan reference: [`phase7.md`](phase7.md)
-
 ### Step 7.1 — `app/api/v1/chat.py`
 
 **Pattern:** Thin controller + Dependency Injection
@@ -477,8 +467,6 @@ Return logical model IDs from `models.yaml`.
 
 ## Phase 8 — Resilience (10 min) — **COMPLETE**
 
-> Plan reference: [`phase8.md`](phase8.md)
-
 ### Step 8.1 — `app/router/health.py`
 
 **Pattern:** Circuit breaker (in-memory)
@@ -497,8 +485,6 @@ Orchestrator skips unhealthy providers before attempting.
 ---
 
 ## Phase 9 — Observability + polish (10 min) — **COMPLETE**
-
-> Plan reference: [`phase9.md`](phase9.md)
 
 1. Structured logs per attempt: `request_id`, `logical_model`, `target`, `attempt`, `latency_ms`, `outcome`
 2. Response headers: `X-Request-Id`, `X-Routed-Provider`

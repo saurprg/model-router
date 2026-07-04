@@ -91,4 +91,4 @@ curl -s http://127.0.0.1:8000/debug/complete \
 
 - Do **not** put DO keys in `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` unless using native provider URLs.
 - Keep secrets in `.env` only — not in `.env.example`.
-- `/debug/complete` hits **primary target only**; full fallback chain comes in Phase 6.
+- Use `/v1/chat/completions` for the full fallback chain (or `/debug/complete`, which delegates to the same handler).
