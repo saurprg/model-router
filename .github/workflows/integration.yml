@@ -43,20 +43,26 @@ jobs:
           curl -sf http://127.0.0.1:8000/v1/models | grep 'fast/demo'
 
       - name: T05 — Groq chat (if secret set)
-        if: ${{ secrets.GROQ_API_KEY != '' }}
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
+          if [ -z "${GROQ_API_KEY}" ]; then
+            echo "Skipping: GROQ_API_KEY secret not configured"
+            exit 0
+          fi
           curl -sf http://127.0.0.1:8000/v1/chat/completions \
             -H "Content-Type: application/json" \
             -d '{"model":"fast/demo","messages":[{"role":"user","content":"Say hi"}],"stream":false}' \
             | grep 'llama-3.1-8b-instant'
 
       - name: T04 — DO chat (if secret set)
-        if: ${{ secrets.DO_MODEL_ACCESS_KEY != '' }}
         env:
           DO_MODEL_ACCESS_KEY: ${{ secrets.DO_MODEL_ACCESS_KEY }}
         run: |
+          if [ -z "${DO_MODEL_ACCESS_KEY}" ]; then
+            echo "Skipping: DO_MODEL_ACCESS_KEY secret not configured"
+            exit 0
+          fi
           curl -sf http://127.0.0.1:8000/v1/chat/completions \
             -H "Content-Type: application/json" \
             -d '{"model":"do/llama","messages":[{"role":"user","content":"Say hi"}],"stream":false}' \
