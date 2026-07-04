@@ -1,17 +1,18 @@
-# Optional: live upstream tests (manual only — requires paid API keys).
-# Add repository secrets: GROQ_API_KEY, DO_MODEL_ACCESS_KEY
+# Manual live upstream tests. Requires repository secrets (Settings → Secrets → Actions):
+#   GROQ_API_KEY, DO_MODEL_ACCESS_KEY
 name: Integration (manual)
 
 on:
   workflow_dispatch:
 
-env:
-  GATEWAY_API_KEY: ci-test-gateway-key
-
 jobs:
   live-e2e:
     name: Live API smoke
     runs-on: ubuntu-latest
+    env:
+      GATEWAY_API_KEY: ci-test-gateway-key
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      DO_MODEL_ACCESS_KEY: ${{ secrets.DO_MODEL_ACCESS_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,35 +36,5 @@ jobs:
             sleep 1
           done
 
-      - name: T01 — health
-        run: curl -sf http://127.0.0.1:8000/health | grep '"status":"ok"'
-
-      - name: T02 — models
-        run: |
-          curl -sf http://127.0.0.1:8000/v1/models | grep 'fast/demo'
-
-      - name: T05 — Groq chat (if secret set)
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          if [ -z "${GROQ_API_KEY}" ]; then
-            echo "Skipping: GROQ_API_KEY secret not configured"
-            exit 0
-          fi
-          curl -sf http://127.0.0.1:8000/v1/chat/completions \
-            -H "Content-Type: application/json" \
-            -d '{"model":"fast/demo","messages":[{"role":"user","content":"Say hi"}],"stream":false}' \
-            | grep 'llama-3.1-8b-instant'
-
-      - name: T04 — DO chat (if secret set)
-        env:
-          DO_MODEL_ACCESS_KEY: ${{ secrets.DO_MODEL_ACCESS_KEY }}
-        run: |
-          if [ -z "${DO_MODEL_ACCESS_KEY}" ]; then
-            echo "Skipping: DO_MODEL_ACCESS_KEY secret not configured"
-            exit 0
-          fi
-          curl -sf http://127.0.0.1:8000/v1/chat/completions \
-            -H "Content-Type: application/json" \
-            -d '{"model":"do/llama","messages":[{"role":"user","content":"Say hi"}],"stream":false}' \
-            | grep 'llama3.3-70b-instruct'
+      - name: Run integration smoke tests
+        run: bash scripts/ci-integration-live.sh
