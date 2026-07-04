@@ -86,12 +86,12 @@ On every push/PR to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.ym
 | **pytest** | All 69 unit/integration tests on Python 3.11, 3.12, 3.13 (no API keys required) |
 | **smoke** | App starts and `GET /health` returns `{"status":"ok"}` |
 
-Optional live upstream tests (manual, requires secrets): [`.github/workflows/integration.yml`](.github/workflows/integration.yml)
+Live upstream tests on every push to `main` (Groq/DO steps skip if secrets unset): [`.github/workflows/integration.yml`](.github/workflows/integration.yml)
 
 **Setup on GitHub:**
 
-1. Push this repo — the workflow runs automatically.
-2. (Optional) **Settings → Secrets and variables → Actions** — add `GROQ_API_KEY` and `DO_MODEL_ACCESS_KEY` for manual integration runs.
+1. Push to `main` — CI and integration workflows run automatically.
+2. (Recommended) **Settings → Secrets and variables → Actions** — add `GROQ_API_KEY` and `DO_MODEL_ACCESS_KEY` for live chat checks.
 3. Badge for README (after first green run):
 
 ```markdown

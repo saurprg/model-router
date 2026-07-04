@@ -1,8 +1,11 @@
-# Manual live upstream tests. Requires repository secrets (Settings → Secrets → Actions):
-#   GROQ_API_KEY, DO_MODEL_ACCESS_KEY
-name: Integration (manual)
+# Live upstream tests on push to main (and manual re-run).
+# Requires repository secrets (Settings → Secrets → Actions):
+#   GROQ_API_KEY, DO_MODEL_ACCESS_KEY — Groq/DO chat steps skip if unset.
+name: Integration
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
