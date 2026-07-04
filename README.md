@@ -77,6 +77,11 @@ chmod +x scripts/demo.sh
 pytest tests/ -q
 ```
 
+## End-to-end testing
+
+- **[`testing-e2e.md`](testing-e2e.md)** — local + production smoke tests (DO App Platform: https://stingray-app-vr7ae.ondigitalocean.app)
+- [`testing-do.md`](testing-do.md) — DigitalOcean Gradient upstream (direct API)
+
 ## Architecture docs
 
 - [`implementation_steps.md`](implementation_steps.md) — build checklist
