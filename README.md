@@ -77,10 +77,33 @@ chmod +x scripts/demo.sh
 pytest tests/ -q
 ```
 
+### CI (GitHub Actions)
+
+On every push/PR to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs:
+
+| Job | What it checks |
+|---|---|
+| **pytest** | All 36 unit/integration tests on Python 3.11, 3.12, 3.13 (no API keys required) |
+| **smoke** | App starts and `GET /health` returns `{"status":"ok"}` |
+
+Optional live upstream tests (manual, requires secrets): [`.github/workflows/integration.yml`](.github/workflows/integration.yml)
+
+**Setup on GitHub:**
+
+1. Push this repo — the workflow runs automatically.
+2. (Optional) **Settings → Secrets and variables → Actions** — add `GROQ_API_KEY` and `DO_MODEL_ACCESS_KEY` for manual integration runs.
+3. Badge for README (after first green run):
+
+```markdown
+![CI](https://github.com/saurprg/model-router/actions/workflows/ci.yml/badge.svg)
+```
+
 ## End-to-end testing
 
-- **[`testing-e2e.md`](testing-e2e.md)** — local + production smoke tests (DO App Platform: https://stingray-app-vr7ae.ondigitalocean.app)
-- [`testing-do.md`](testing-do.md) — DigitalOcean Gradient upstream (direct API)
+Evaluator-focused guides with pass criteria and reasoning for each expected output:
+
+- **[`testing-e2e.md`](testing-e2e.md)** — full gateway evaluation (T01–T12 checklist; production + local)
+- [`testing-do.md`](testing-do.md) — isolate DigitalOcean upstream vs gateway issues (D01–D05)
 
 ## Architecture docs
 

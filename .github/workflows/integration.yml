@@ -1,0 +1,63 @@
+# Optional: live upstream tests (manual only — requires paid API keys).
+# Add repository secrets: GROQ_API_KEY, DO_MODEL_ACCESS_KEY
+name: Integration (manual)
+
+on:
+  workflow_dispatch:
+
+env:
+  GATEWAY_API_KEY: ci-test-gateway-key
+
+jobs:
+  live-e2e:
+    name: Live API smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start gateway
+        run: |
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && break
+            sleep 1
+          done
+
+      - name: T01 — health
+        run: curl -sf http://127.0.0.1:8000/health | grep '"status":"ok"'
+
+      - name: T02 — models
+        run: |
+          curl -sf http://127.0.0.1:8000/v1/models | grep 'fast/demo'
+
+      - name: T05 — Groq chat (if secret set)
+        if: ${{ secrets.GROQ_API_KEY != '' }}
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          curl -sf http://127.0.0.1:8000/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -d '{"model":"fast/demo","messages":[{"role":"user","content":"Say hi"}],"stream":false}' \
+            | grep 'llama-3.1-8b-instant'
+
+      - name: T04 — DO chat (if secret set)
+        if: ${{ secrets.DO_MODEL_ACCESS_KEY != '' }}
+        env:
+          DO_MODEL_ACCESS_KEY: ${{ secrets.DO_MODEL_ACCESS_KEY }}
+        run: |
+          curl -sf http://127.0.0.1:8000/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -d '{"model":"do/llama","messages":[{"role":"user","content":"Say hi"}],"stream":false}' \
+            | grep 'llama3.3-70b-instruct'
