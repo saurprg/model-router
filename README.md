@@ -83,7 +83,7 @@ On every push/PR to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.ym
 
 | Job | What it checks |
 |---|---|
-| **pytest** | All 36 unit/integration tests on Python 3.11, 3.12, 3.13 (no API keys required) |
+| **pytest** | All 69 unit/integration tests on Python 3.11, 3.12, 3.13 (no API keys required) |
 | **smoke** | App starts and `GET /health` returns `{"status":"ok"}` |
 
 Optional live upstream tests (manual, requires secrets): [`.github/workflows/integration.yml`](.github/workflows/integration.yml)

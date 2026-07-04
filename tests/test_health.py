@@ -4,7 +4,7 @@ from unittest.mock import patch
 import httpx
 import pytest
 
-from app.errors import AllProvidersFailed, RetryableError
+from app.errors import AllProvidersFailed, FatalError, RetryableError
 from app.orchestrator.fallback import FallbackOrchestrator
 from app.router.health import ProviderHealth
 from app.router.registry import ModelRegistry
@@ -121,3 +121,48 @@ async def test_orchestrator_records_failure_on_retryable(
             await orchestrator.execute(request_body, "req-health-2")
 
     assert health.snapshot()["groq"]["consecutive_failures"] == 1
+
+
+@pytest.mark.asyncio
+async def test_fatal_error_does_not_record_provider_failure(
+    registry: ModelRegistry,
+    request_body: ChatCompletionRequest,
+) -> None:
+    health = ProviderHealth(failure_threshold=3)
+    orchestrator = FallbackOrchestrator(
+        registry=registry,
+        http=httpx.AsyncClient(),
+        health=health,
+    )
+    adapter = FakeAdapter(
+        complete_error=FatalError("bad request", code="upstream_bad_request")
+    )
+
+    with patch("app.orchestrator.fallback.get_adapter", return_value=adapter):
+        with pytest.raises(FatalError):
+            await orchestrator.execute(request_body, "req-fatal-health")
+
+    assert health.snapshot().get("groq", {}).get("consecutive_failures", 0) == 0
+
+
+@pytest.mark.asyncio
+async def test_all_targets_skipped_when_providers_unhealthy(
+    request_body: ChatCompletionRequest,
+) -> None:
+    registry = ModelRegistry(Path("config/models.yaml"))
+    health = ProviderHealth(failure_threshold=1, recovery_seconds=60.0)
+    health.record_failure("groq")
+    health.record_failure("digitalocean")
+
+    orchestrator = FallbackOrchestrator(
+        registry=registry,
+        http=httpx.AsyncClient(),
+        health=health,
+    )
+    adapter = FakeAdapter(complete_result=_response("llama-3.1-8b-instant"))
+
+    with patch("app.orchestrator.fallback.get_adapter", return_value=adapter):
+        with pytest.raises(AllProvidersFailed):
+            await orchestrator.execute(request_body, "req-all-skip")
+
+    assert adapter.complete_calls == 0

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.errors import UnknownModelError
+from app.errors import FatalError, UnknownModelError
 from app.router.registry import ModelRegistry, RouteTarget
 
 
@@ -65,3 +65,9 @@ def test_list_logical_models(registry: ModelRegistry) -> None:
         "fast/demo",
         "smart/general",
     ]
+
+
+def test_get_provider_unknown_raises(registry: ModelRegistry) -> None:
+    with pytest.raises(FatalError) as exc:
+        registry.get_provider("does-not-exist")
+    assert exc.value.code == "unknown_provider"

@@ -6,7 +6,7 @@ Use this document to verify the **Model Router** gateway end-to-end. Each test s
 
 ---
 
-## What you are evaluating
+## What you are testing
 
 The gateway is an **OpenAI-compatible HTTP API** that:
 
@@ -57,7 +57,7 @@ Mark each test **PASS** only if **all** checks in that test’s pass criteria ar
 | [T09](#t09-unknown-model-error) | Error handling | Unknown alias → 404, no fallback | **Yes** |
 | [T10](#t10-circuit-breaker-debug) | Circuit breaker | Per-provider health state exposed | Recommended |
 | [T11](#t11-fallback-chain-config) | Fallback configuration | Multi-provider chain for `smart/general` | Recommended |
-| [T12](#t12-automated-unit-tests) | Automated regression | 36+ pytest cases green | **Yes** (local) |
+| [T12](#t12-automated-unit-tests) | Automated regression | 69 pytest cases green | **Yes** (local) |
 
 ---
 
@@ -358,17 +358,19 @@ pytest tests/ -q
 | Check | Expected | Reasoning |
 |---|---|---|
 | Exit code | `0` | All tests passed |
-| Count | 36+ tests | Suite covers core modules listed below |
+| Count | 69 tests | Suite covers core modules listed below |
 
 | Test file | What it proves |
 |---|---|
-| `test_registry.py` | YAML → alias resolution order |
-| `test_openai_adapter.py` | HTTP error → Retryable/Fatal mapping |
-| `test_streaming_proxy.py` | Chunks → SSE lines + `[DONE]` |
-| `test_fallback.py` | Chain of responsibility; stream first-chunk lock |
-| `test_health.py` | Circuit breaker threshold and skip |
-| `test_chat_api.py` | HTTP routes delegate to orchestrator |
-| `test_observability.py` | Headers and structured log fields |
+| `test_registry.py` | YAML → alias resolution; unknown model/provider |
+| `test_errors.py` | HTTP/transport error classification |
+| `test_providers_factory.py` | Adapter factory; unknown provider |
+| `test_openai_adapter.py` | Complete/stream; 4xx/5xx; missing key; payload |
+| `test_streaming_proxy.py` | Chunks → SSE lines + `[DONE]` + headers |
+| `test_fallback.py` | Fallback chain; stream lock; empty stream; fatal |
+| `test_health.py` | Circuit breaker; skip unhealthy; fatal vs retryable |
+| `test_chat_api.py` | Routes, 404/502, debug endpoints, SSE headers |
+| `test_observability.py` | Request ID, routed provider, structured logs |
 
 ---
 

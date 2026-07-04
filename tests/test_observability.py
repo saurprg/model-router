@@ -121,3 +121,118 @@ async def test_structured_log_on_retry(
     assert retry_events[0]["request_id"] == "req-log-1"
     assert retry_events[0]["provider"] == "groq"
     assert "latency_ms" in retry_events[0]
+
+
+@pytest.mark.asyncio
+async def test_structured_log_on_success(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    import logging
+    from pathlib import Path
+
+    caplog.set_level(logging.INFO, logger="app.orchestrator.fallback")
+
+    adapter = OpenAIAdapter(
+        http=MagicMock(),
+        provider_config=ProviderConfig(
+            base_url="https://api.groq.com/openai/v1",
+            api_key_env="GROQ_API_KEY",
+        ),
+    )
+
+    async def _ok(*_args, **_kwargs):
+        return ChatCompletionResponse(
+            id="cmpl-1",
+            model="llama-3.1-8b-instant",
+            choices=[
+                ChatCompletionChoice(
+                    message=ChatMessage(role="assistant", content="Hi"),
+                    finish_reason="stop",
+                )
+            ],
+        )
+
+    monkeypatch.setattr(adapter, "complete", _ok)
+
+    orchestrator = FallbackOrchestrator(
+        registry=ModelRegistry(Path("config/models.yaml")),
+        http=httpx.AsyncClient(),
+    )
+    request = ChatCompletionRequest(
+        model="fast/demo",
+        messages=[ChatMessage(role="user", content="Hi")],
+    )
+
+    with patch("app.orchestrator.fallback.get_adapter", return_value=adapter):
+        await orchestrator.execute(request, "req-log-success")
+
+    records = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.message.startswith("{")
+    ]
+    success = [event for event in records if event.get("outcome") == "success"]
+    assert len(success) == 1
+    assert success[0]["request_id"] == "req-log-success"
+
+
+@pytest.mark.asyncio
+async def test_structured_log_on_skip_unhealthy(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    import logging
+    from pathlib import Path
+
+    from app.router.health import ProviderHealth
+
+    caplog.set_level(logging.INFO, logger="app.orchestrator.fallback")
+
+    health = ProviderHealth(failure_threshold=1)
+    health.record_failure("groq")
+
+    orchestrator = FallbackOrchestrator(
+        registry=ModelRegistry(Path("config/models.yaml")),
+        http=httpx.AsyncClient(),
+        health=health,
+    )
+    adapter = OpenAIAdapter(
+        http=MagicMock(),
+        provider_config=ProviderConfig(
+            base_url="https://api.groq.com/openai/v1",
+            api_key_env="GROQ_API_KEY",
+        ),
+    )
+
+    async def _ok(*_args, **_kwargs):
+        return ChatCompletionResponse(
+            id="cmpl-1",
+            model="llama-3.1-8b-instant",
+            choices=[
+                ChatCompletionChoice(
+                    message=ChatMessage(role="assistant", content="Hi"),
+                    finish_reason="stop",
+                )
+            ],
+        )
+
+    monkeypatch.setattr(adapter, "complete", _ok)
+
+    request = ChatCompletionRequest(
+        model="fast/demo",
+        messages=[ChatMessage(role="user", content="Hi")],
+    )
+
+    with patch("app.orchestrator.fallback.get_adapter", return_value=adapter):
+        with pytest.raises(AllProvidersFailed):
+            await orchestrator.execute(request, "req-log-skip")
+
+    records = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.message.startswith("{")
+    ]
+    skipped = [event for event in records if event.get("outcome") == "skip_unhealthy"]
+    assert len(skipped) == 1
+    assert skipped[0]["error_code"] == "provider_unhealthy"

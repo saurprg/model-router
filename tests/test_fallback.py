@@ -240,3 +240,43 @@ async def test_stream_no_fallback_after_first_chunk(
     assert primary.stream_calls == 1
     assert fallback.stream_calls == 0
     assert get_adapter_mock.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_stream_empty_response_succeeds(
+    orchestrator: FallbackOrchestrator,
+    request_body: ChatCompletionRequest,
+) -> None:
+    request_body.stream = True
+    adapter = FakeAdapter(stream_chunks=[])
+
+    with patch("app.orchestrator.fallback.get_adapter", return_value=adapter):
+        stream = await orchestrator.execute_stream(request_body, "req-empty")
+        chunks = [chunk async for chunk in stream.chunks]
+
+    assert chunks == []
+    assert stream.routed_provider == "groq"
+    assert adapter.stream_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_stream_fatal_error_before_first_chunk_no_fallback(
+    orchestrator: FallbackOrchestrator,
+    request_body: ChatCompletionRequest,
+) -> None:
+    request_body.stream = True
+    primary = FakeAdapter(
+        stream_error=FatalError("bad request", code="upstream_bad_request")
+    )
+    fallback = FakeAdapter(stream_chunks=[_chunk("fallback")])
+    adapters = iter([primary, fallback])
+
+    with patch(
+        "app.orchestrator.fallback.get_adapter",
+        side_effect=lambda *_args, **_kwargs: next(adapters),
+    ):
+        with pytest.raises(FatalError):
+            await orchestrator.execute_stream(request_body, "req-fatal-stream")
+
+    assert primary.stream_calls == 1
+    assert fallback.stream_calls == 0

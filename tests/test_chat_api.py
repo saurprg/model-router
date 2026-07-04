@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
+from app.errors import AllProvidersFailed
 from app.main import create_app
 from app.orchestrator import get_orchestrator
 from app.orchestrator.fallback import FallbackOrchestrator
@@ -131,3 +132,63 @@ def test_unknown_model_404() -> None:
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "unknown_model"
+
+
+def test_all_providers_failed_returns_502() -> None:
+    mock = MagicMock(spec=FallbackOrchestrator)
+    mock.execute = AsyncMock(
+        side_effect=AllProvidersFailed("fast/demo"),
+    )
+
+    app = create_app()
+    app.dependency_overrides[get_orchestrator] = lambda: mock
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "fast/demo",
+                "messages": [{"role": "user", "content": "Hi"}],
+                "stream": False,
+            },
+        )
+
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "all_providers_failed"
+
+
+def test_debug_routes_returns_target_chain() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        response = client.get("/debug/routes/smart/general")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["logical_model"] == "smart/general"
+    assert len(payload["targets"]) == 4
+    assert payload["targets"][0]["provider"] == "groq"
+
+
+def test_debug_health_providers_returns_snapshot() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        response = client.get("/debug/health/providers")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "providers" in payload
+
+
+def test_stream_response_includes_sse_cache_headers(
+    client: TestClient, mock_orchestrator: MagicMock
+) -> None:
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "model": "fast/demo",
+            "messages": [{"role": "user", "content": "Hi"}],
+            "stream": True,
+        },
+    )
+
+    assert response.headers["Cache-Control"] == "no-cache"
+    assert response.headers["X-Accel-Buffering"] == "no"

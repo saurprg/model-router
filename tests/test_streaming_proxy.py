@@ -3,7 +3,7 @@ import json
 import pytest
 
 from app.schemas import ChatCompletionChunk, Delta, StreamChoice
-from app.streaming.proxy import sse_stream
+from app.streaming.proxy import SSE_HEADERS, sse_stream
 
 
 async def _collect_sse(chunks: list[ChatCompletionChunk]) -> list[str]:
@@ -54,3 +54,9 @@ async def test_chunk_json_matches_schema() -> None:
     assert payload["id"] == "chunk-1"
     assert payload["object"] == "chat.completion.chunk"
     assert payload["choices"][0]["index"] == 0
+
+
+def test_sse_headers_defined() -> None:
+    assert SSE_HEADERS["Cache-Control"] == "no-cache"
+    assert SSE_HEADERS["Connection"] == "keep-alive"
+    assert SSE_HEADERS["X-Accel-Buffering"] == "no"
